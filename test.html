@@ -1,1 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест — LangTest</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container header-inner">
+      <a href="index.html" class="logo">🌍 LangTest</a>
+      <div class="timer" id="timer">15:00</div>
+    </div>
+  </header>
 
+  <main class="container">
+    <h1 id="test-title">Загрузка...</h1>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress"></div>
+    </div>
+    <p class="counter" id="counter"></p>
+
+    <div class="question-box">
+      <h2 id="question"></h2>
+      <div id="options" class="options"></div>
+      <div id="feedback" class="feedback"></div>
+      <button id="next-btn" class="btn" style="display:none;">Далее →</button>
+    </div>
+  </main>
+
+  <script type="module" src="js/quiz.js"></script>
+</body>
+</html>

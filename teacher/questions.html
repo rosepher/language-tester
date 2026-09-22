@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вопросы — LangTest</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container header-inner">
+      <a href="dashboard.html" class="logo">🌍 LangTest — панель</a>
+      <nav>
+        <a href="dashboard.html">← Назад</a>
+        <button id="logout-btn" class="btn-link">Выйти</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Управление вопросами</h1>
+
+    <div class="filters">
+      <select id="filter-lang">
+        <option value="">Все языки</option>
+        <option value="english">English</option>
+        <option value="spanish">Español</option>
+      </select>
+      <select id="filter-level">
+        <option value="">Все уровни</option>
+        <option value="a2">A2</option>
+        <option value="b1">B1</option>
+      </select>
+      <button id="add-btn" class="btn">+ Добавить вопрос</button>
+    </div>
+
+    <div id="form-container" style="display:none;" class="form-container">
+      <h2 id="form-title">Новый вопрос</h2>
+      <form id="question-form">
+        <input type="hidden" id="q-id">
+
+        <label>Язык</label>
+        <select id="q-lang" required>
+          <option value="english">English</option>
+          <option value="spanish">Español</option>
+        </select>
+
+        <label>Уровень</label>
+        <select id="q-level" required>
+          <option value="a2">A2</option>
+          <option value="b1">B1</option>
+        </select>
+
+        <label>Текст вопроса</label>
+        <textarea id="q-text" required></textarea>
+
+        <label>Вариант A</label>
+        <input type="text" id="q-a" required>
+        <label>Вариант B</label>
+        <input type="text" id="q-b" required>
+        <label>Вариант C</label>
+        <input type="text" id="q-c" required>
+        <label>Вариант D</label>
+        <input type="text" id="q-d" required>
+
+        <label>Правильный вариант</label>
+        <select id="q-correct" required>
+          <option value="a">A</option>
+          <option value="b">B</option>
+          <option value="c">C</option>
+          <option value="d">D</option>
+        </select>
+
+        <label>Пояснение (необязательно)</label>
+        <textarea id="q-explanation"></textarea>
+
+        <div class="form-actions">
+          <button type="submit" class="btn">Сохранить</button>
+          <button type="button" id="cancel-btn" class="btn btn-secondary">Отмена</button>
+        </div>
+        <p id="form-error" class="error"></p>
+      </form>
+    </div>
+
+    <div id="questions-list" class="questions-list">Загрузка...</div>
+  </main>
+
+  <script type="module" src="../js/teacher.js"></script>
+</body>
+</html>

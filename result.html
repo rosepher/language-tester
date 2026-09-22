@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Результат — LangTest</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container header-inner">
+      <a href="index.html" class="logo">🌍 LangTest</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="result-box">
+      <h1>Результат теста</h1>
+      <p id="student-info" class="muted"></p>
+      <div class="score-circle" id="score-circle">
+        <span id="score-percent">0%</span>
+      </div>
+      <p class="result-text" id="result-text"></p>
+      <p class="result-details" id="result-details"></p>
+      <div class="result-actions">
+        <a href="index.html" class="btn">Пройти другой тест</a>
+      </div>
+    </div>
+
+    <section>
+      <h2>Разбор ответов</h2>
+      <div id="review"></div>
+    </section>
+  </main>
+
+  <script>
+    const result = JSON.parse(sessionStorage.getItem('lastResult') || 'null');
+
+    if (!result) {
+      document.querySelector('.result-box').innerHTML =
+        '<h1>Результат не найден</h1><a href="index.html" class="btn">На главную</a>';
+    } else {
+      const percent = result.percent;
+      document.getElementById('student-info').textContent =
+        `${result.studentName} — ${result.language === 'english' ? 'English' : 'Español'} ${result.level.toUpperCase()}`;
+      document.getElementById('score-percent').textContent = percent + '%';
+      document.getElementById('result-details').textContent =
+        `Правильных ответов: ${result.score} из ${result.total}`;
+
+      let text = '', cls = '';
+      if (percent >= 80) { text = '🏆 Отличный результат!'; cls = 'excellent'; }
+      else if (percent >= 60) { text = '👍 Хороший результат.'; cls = 'good'; }
+      else { text = '📚 Стоит повторить материал.'; cls = 'weak'; }
+
+      document.getElementById('score-circle').classList.add(cls);
+      document.getElementById('result-text').textContent = text;
+
+      const review = document.getElementById('review');
+      result.answers.forEach((a, i) => {
+        const div = document.createElement('div');
+        div.className = 'review-item ' + (a.isCorrect ? 'correct' : 'wrong');
+        div.innerHTML = `
+          <p><strong>Вопрос ${i + 1}:</strong> ${a.question}</p>
+          <p>Ваш ответ: <em>${a.userAnswer}</em> ${a.isCorrect ? '✅' : '❌'}</p>
+          ${!a.isCorrect ? `<p>Правильный ответ: <strong>${a.correctAnswer}</strong></p>` : ''}
+        `;
+        review.appendChild(div);
+      });
+    }
+  </script>
+</body>
+</html>

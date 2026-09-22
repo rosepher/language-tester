@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель преподавателя — LangTest</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container header-inner">
+      <a href="dashboard.html" class="logo">🌍 LangTest — панель</a>
+      <nav>
+        <span id="user-name" class="muted"></span>
+        <button id="logout-btn" class="btn-link">Выйти</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Панель преподавателя</h1>
+    <div class="dashboard-grid">
+      <a href="questions.html" class="dashboard-card">
+        <div class="card-icon">📝</div>
+        <h2>Управление вопросами</h2>
+        <p>Добавлять, редактировать и удалять тестовые задания</p>
+      </a>
+      <a href="results.html" class="dashboard-card">
+        <div class="card-icon">📊</div>
+        <h2>Результаты учеников</h2>
+        <p>Просматривать все попытки прохождения тестов</p>
+      </a>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireTeacher, supabase } from '../js/supabase.js';
+
+    const user = await requireTeacher();
+    if (user) {
+      document.getElementById('user-name').textContent = user.full_name || user.email;
+    }
+
+    document.getElementById('logout-btn').onclick = async () => {
+      await supabase.auth.signOut();
+      window.location.href = '../index.html';
+    };
+  </script>
+</body>
+</html>

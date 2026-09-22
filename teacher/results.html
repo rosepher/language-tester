@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Результаты — LangTest</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container header-inner">
+      <a href="dashboard.html" class="logo">🌍 LangTest — панель</a>
+      <nav>
+        <a href="dashboard.html">← Назад</a>
+        <button id="logout-btn" class="btn-link">Выйти</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Результаты учеников</h1>
+
+    <div class="filters">
+      <select id="filter-lang">
+        <option value="">Все языки</option>
+        <option value="english">English</option>
+        <option value="spanish">Español</option>
+      </select>
+      <select id="filter-level">
+        <option value="">Все уровни</option>
+        <option value="a2">A2</option>
+        <option value="b1">B1</option>
+      </select>
+    </div>
+
+    <div id="stats" class="stats"></div>
+    <div id="results-list" class="results-list">Загрузка...</div>
+  </main>
+
+  <script type="module">
+    import { supabase, requireTeacher } from '../js/supabase.js';
+
+    await requireTeacher();
+
+    document.getElementById('logout-btn').onclick = async () => {
+      await supabase.auth.signOut();
+      window.location.href = '../index.html';
+    };
+
+    async function loadResults() {
+      const lang = document.getElementById('filter-lang').value;
+      const level = document.getElementById('filter-level').value;
+
+      let query = supabase.from('attempts').select('*').order('created_at', { ascending: false });
+      if (lang) query = query.eq('language', lang);
+      if (level) query = query.eq('level', level);
+
+      const { data, error } = await query;
+      if (error) {
+        document.getElementById('results-list').textContent = 'Ошибка: ' + error.message;
+        return;
+      }
+
+      const list = document.getElementById('results-list');
+      if (!data.length) {
+        list.innerHTML = '<p class="muted">Результатов пока нет</p>';
+        document.getElementById('stats').innerHTML = '';
+        return;
+      }
+
+      // Статистика
+      const avgPercent = Math.round(data.reduce((s, a) => s + a.percent, 0) / data.length);
+      document.getElementById('stats').innerHTML = `
+        <div class="stat-card"><div class="stat-number">${data.length}</div><div>Попыток</div></div>
+        <div class="stat-card"><div class="stat-number">${avgPercent}%</div><div>Средний балл</div></div>
+      `;
+
+      list.innerHTML = data.map(a => {
+        const date = new Date(a.created_at).toLocaleString('ru-RU');
+        const cls = a.percent >= 80 ? 'excellent' : a.percent >= 60 ? 'good' : 'weak';
+        return `
+          <div class="result-row">
+            <div>
+              <strong>${a.student_name}</strong>
+              <span class="badge">${a.language} ${a.level.toUpperCase()}</span>
+            </div>
+            <div class="result-score ${cls}">${a.score}/${a.total} (${a.percent}%)</div>
+            <div class="muted">${date}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    document.getElementById('filter-lang').onchange = loadResults;
+    document.getElementById('filter-level').onchange = loadResults;
+
+    loadResults();
+  </script>
+</body>
+</html>
