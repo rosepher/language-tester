@@ -21,7 +21,19 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: background-color 0.3s ease;
 }
+
+body.light-theme {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+body.dark-theme {
+    background-color: #121212;
+    color: #ffffff;
+}
+
 
 .container { max-width: 900px; margin: 0 auto; padding: 0 20px; width: 100%; }
 
