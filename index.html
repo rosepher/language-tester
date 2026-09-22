@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LangTest — проверь свой уровень</title>
+  <title>LanguageTester — проверь свой уровень</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <button id="themeToggle">Переключить тему</button>
   <header>
-    <div class="container header-inner">
-      <a href="index.html" class="logo">🌍 LangTest</a>
-      <nav>
-        <a href="index.html">Главная</a>
-        <a href="login.html" id="login-link">Вход для преподавателя</a>
-      </nav>
-    </div>
+  <div class="container header-inner">
+    <a href="index.html" class="logo">🌍 LanguageTester</a>
+    <nav>
+      <a href="index.html">Главная</a>
+      <a href="login.html" id="login-link">Вход для преподавателя</a>
+      <button id="theme-toggle" class="theme-toggle" title="Сменить тему">🌙</button>
+    </nav>
+  </div>
   </header>
 
   <main class="container">
@@ -48,10 +48,11 @@
 
   <footer>
     <div class="container">
-      <p>© 2025 LangTest — курсовой проект</p>
+      <p>© 2026 LanguageTester — курсовой проект</p>
     </div>
   </footer>
-
+  <script type="module" src="js/theme.js"></script>
+  <script type="module" src="js/app.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>
