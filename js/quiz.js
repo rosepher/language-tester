@@ -9,11 +9,10 @@ let questions = [];
 let current = 0;
 let score = 0;
 let answers = [];
-let timeLeft = 900; // 15 минут
+let timeLeft = 900;
 let timerInterval = null;
 let answered = false;
 
-// === ЗАГРУЗКА ===
 async function loadTest() {
   const { data, error } = await supabase
     .from('questions')
@@ -42,7 +41,6 @@ async function loadTest() {
   renderQuestion();
 }
 
-// === ТАЙМЕР ===
 function startTimer() {
   const timerEl = document.getElementById('timer');
   timerInterval = setInterval(() => {
@@ -58,7 +56,6 @@ function startTimer() {
   }, 1000);
 }
 
-// === ОТРИСОВКА ВОПРОСА ===
 function renderQuestion() {
   answered = false;
   const q = questions[current];
@@ -72,7 +69,6 @@ function renderQuestion() {
   const feedback = document.getElementById('feedback');
   feedback.textContent = '';
   feedback.className = 'feedback';
-
   document.getElementById('next-btn').style.display = 'none';
 
   const optionsDiv = document.getElementById('options');
@@ -87,7 +83,6 @@ function renderQuestion() {
   });
 }
 
-// === ОТВЕТ ===
 function selectAnswer(index) {
   if (answered) return;
   answered = true;
@@ -127,22 +122,24 @@ function selectAnswer(index) {
   nextBtn.textContent = current === questions.length - 1 ? 'Завершить →' : 'Далее →';
 }
 
-// === ДАЛЕЕ ===
 document.getElementById('next-btn').onclick = () => {
   current++;
   if (current < questions.length) renderQuestion();
   else finishTest();
 };
 
-// === ЗАВЕРШЕНИЕ ===
 async function finishTest() {
   clearInterval(timerInterval);
   document.getElementById('progress').style.width = '100%';
 
+  console.log('=== finishTest START ===');
+  console.log('studentName:', studentName, 'lang:', lang, 'level:', level);
+  console.log('score:', score, 'total:', questions.length);
+
   const percent = Math.round((score / questions.length) * 100);
 
-  // Сохраняем в БД
-  const { data: attempt, error } = await supabase
+  console.log('=== INSERT INTO attempts ===');
+  const { data: attempt, error: err1 } = await supabase
     .from('attempts')
     .insert({
       student_name: studentName,
@@ -155,17 +152,27 @@ async function finishTest() {
     .select()
     .single();
 
-  if (!error && attempt) {
+  console.log('attempt:', attempt);
+  console.log('attempt error:', err1);
+
+  if (attempt && !err1) {
     const rows = answers.map(a => ({
       attempt_id: attempt.id,
       question_id: a.questionId,
       user_answer: a.userAnswerLetter,
       is_correct: a.isCorrect
     }));
-    await supabase.from('attempt_answers').insert(rows);
+
+    console.log('=== INSERT INTO attempt_answers ===');
+    const { data: ans, error: err2 } = await supabase
+      .from('attempt_answers')
+      .insert(rows)
+      .select();
+
+    console.log('answers:', ans);
+    console.log('answers error:', err2);
   }
 
-  // Сохраняем для страницы результата
   sessionStorage.setItem('lastResult', JSON.stringify({
     studentName,
     language: lang,
@@ -176,7 +183,16 @@ async function finishTest() {
     answers
   }));
 
-  window.location.href = 'result.html';
+  if (err1 || !attempt) {
+    alert('ОШИБКА СОХРАНЕНИЯ: ' + (err1?.message || 'attempt = null') +
+      '\nПроверьте консоль (F12)');
+  }
+
+  console.log('=== REDIRECT TO result.html ===');
+
+  setTimeout(() => {
+    window.location.href = 'result.html';
+  }, 800);
 }
 
 loadTest();
