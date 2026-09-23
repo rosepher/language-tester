@@ -3,22 +3,56 @@ import { supabase, requireTeacher } from './supabase.js';
 const user = await requireTeacher();
 if (!user) throw new Error('Доступ запрещён');
 
+// === Получаем test_id из URL ===
+const params = new URLSearchParams(location.search);
+const testId = params.get('test_id');
+
+if (!testId) {
+  document.querySelector('main').innerHTML =
+    '<h1>Ошибка</h1><p>Не указан ID теста.</p><a href="tests.html" class="btn">К списку тестов</a>';
+  throw new Error('test_id не указан');
+}
+
+let currentTest = null;
+
 // === Logout ===
 document.getElementById('logout-btn').onclick = async () => {
   await supabase.auth.signOut();
   window.location.href = '../index.html';
 };
 
-// === Загрузка вопросов ===
+// === Загрузка теста (для заголовка) ===
+async function loadTestInfo() {
+  const { data, error } = await supabase
+    .from('tests')
+    .select('*')
+    .eq('id', testId)
+    .single();
+
+  if (error || !data) {
+    document.querySelector('main').innerHTML =
+      '<h1>Тест не найден</h1><a href="tests.html" class="btn">К списку тестов</a>';
+    return false;
+  }
+
+  currentTest = data;
+
+  document.getElementById('test-title').textContent = data.title;
+  document.getElementById('test-info').textContent =
+    `${data.language === 'english' ? 'English' : 'Español'} · ${data.level.toUpperCase()}` +
+    (data.is_published ? '' : ' · черновик');
+
+  return true;
+}
+
+// === Загрузка вопросов теста ===
 async function loadQuestions() {
-  const lang = document.getElementById('filter-lang').value;
-  const level = document.getElementById('filter-level').value;
+  const { data, error } = await supabase
+    .from('questions')
+    .select('*')
+    .eq('test_id', testId)
+    .order('id', { ascending: false });
 
-  let query = supabase.from('questions').select('*').order('id', { ascending: false });
-  if (lang) query = query.eq('language', lang);
-  if (level) query = query.eq('level', level);
-
-  const { data, error } = await query;
   if (error) {
     document.getElementById('questions-list').textContent = 'Ошибка: ' + error.message;
     return;
@@ -26,14 +60,14 @@ async function loadQuestions() {
 
   const list = document.getElementById('questions-list');
   if (!data.length) {
-    list.innerHTML = '<p class="muted">Вопросов нет</p>';
+    list.innerHTML = '<p class="muted">В этом тесте пока нет вопросов. Нажмите «Добавить вопрос».</p>';
     return;
   }
 
-  list.innerHTML = data.map(q => `
+  list.innerHTML = data.map((q, i) => `
     <div class="question-item">
       <div class="question-header">
-        <span class="badge">${q.language} ${q.level.toUpperCase()}</span>
+        <span class="badge">Вопрос ${data.length - i}</span>
         <div class="question-actions">
           <button onclick="editQuestion(${q.id})" class="btn-small">✏️</button>
           <button onclick="deleteQuestion(${q.id})" class="btn-small btn-danger">🗑️</button>
@@ -46,7 +80,7 @@ async function loadQuestions() {
   `).join('');
 }
 
-// === Показать форму ===
+// === Показать форму добавления ===
 document.getElementById('add-btn').onclick = () => {
   resetForm();
   document.getElementById('form-title').textContent = 'Новый вопрос';
@@ -69,25 +103,30 @@ document.getElementById('question-form').onsubmit = async (e) => {
   e.preventDefault();
 
   const id = document.getElementById('q-id').value;
+
   const payload = {
-    language: document.getElementById('q-lang').value,
-    level: document.getElementById('q-level').value,
-    question_text: document.getElementById('q-text').value,
-    option_a: document.getElementById('q-a').value,
-    option_b: document.getElementById('q-b').value,
-    option_c: document.getElementById('q-c').value,
-    option_d: document.getElementById('q-d').value,
+    question_text: document.getElementById('q-text').value.trim(),
+    option_a: document.getElementById('q-a').value.trim(),
+    option_b: document.getElementById('q-b').value.trim(),
+    option_c: document.getElementById('q-c').value.trim(),
+    option_d: document.getElementById('q-d').value.trim(),
     correct_option: document.getElementById('q-correct').value,
-    explanation: document.getElementById('q-explanation').value
+    explanation: document.getElementById('q-explanation').value.trim()
   };
 
   const errorEl = document.getElementById('form-error');
-
   let error;
+
   if (id) {
+    // Обновление — не меняем test_id, language, level
     ({ error } = await supabase.from('questions').update(payload).eq('id', id));
   } else {
+    // Создание — наследуем language, level и test_id от текущего теста
+    payload.language = currentTest.language;
+    payload.level = currentTest.level;
+    payload.test_id = currentTest.id;
     payload.created_by = user.id;
+
     ({ error } = await supabase.from('questions').insert(payload));
   }
 
@@ -107,8 +146,6 @@ window.editQuestion = async (id) => {
   if (!data) return;
 
   document.getElementById('q-id').value = data.id;
-  document.getElementById('q-lang').value = data.language;
-  document.getElementById('q-level').value = data.level;
   document.getElementById('q-text').value = data.question_text;
   document.getElementById('q-a').value = data.option_a;
   document.getElementById('q-b').value = data.option_b;
@@ -130,8 +167,8 @@ window.deleteQuestion = async (id) => {
   loadQuestions();
 };
 
-// === Фильтры ===
-document.getElementById('filter-lang').onchange = loadQuestions;
-document.getElementById('filter-level').onchange = loadQuestions;
-
-loadQuestions();
+// === Старт ===
+(async () => {
+  const ok = await loadTestInfo();
+  if (ok) loadQuestions();
+})();

@@ -10,19 +10,26 @@ function shuffle(arr) {
   return a;
 }
 
-// === Параметры ===
+// === Параметры из URL ===
 const params = new URLSearchParams(location.search);
-const lang = params.get('lang') || 'english';
-const level = params.get('level') || 'a2';
+const testId = params.get('test_id');
 const studentName = sessionStorage.getItem('student_name') || 'Аноним';
 const shuffleEnabled = params.get('shuffle') !== '0';
 
+if (!testId) {
+  document.querySelector('.question-box').innerHTML =
+    '<p>Не указан тест. Вернитесь на главную.</p>' +
+    '<a href="index.html" class="btn">На главную</a>';
+  throw new Error('test_id не указан');
+}
+
 // === Состояние ===
+let currentTest = null;
 let questions = [];
 let current = 0;
 let score = 0;
 let answers = [];
-let timeLeft = 900;
+let timeLeft = 900; // 15 минут
 let timerInterval = null;
 let answered = false;
 
@@ -30,30 +37,52 @@ let answered = false;
 // ЗАГРУЗКА ТЕСТА
 // ==========================================
 async function loadTest() {
-  console.log('=== loadTest START ===', { lang, level, studentName, shuffleEnabled });
+  console.log('=== loadTest START ===', { testId, studentName, shuffleEnabled });
 
+  // 1. Загружаем информацию о тесте
+  const { data: test, error: testError } = await supabase
+    .from('tests')
+    .select('*')
+    .eq('id', testId)
+    .single();
+
+  if (testError || !test) {
+    console.error('Ошибка загрузки теста:', testError);
+    document.querySelector('.question-box').innerHTML =
+      '<p>Тест не найден.</p><a href="index.html" class="btn">На главную</a>';
+    return;
+  }
+
+  if (!test.is_published) {
+    document.querySelector('.question-box').innerHTML =
+      '<p>Этот тест ещё не опубликован.</p><a href="index.html" class="btn">На главную</a>';
+    return;
+  }
+
+  currentTest = test;
+
+  // 2. Загружаем вопросы теста
   const { data, error } = await supabase
     .from('questions')
     .select('*')
-    .eq('language', lang)
-    .eq('level', level);
+    .eq('test_id', testId);
 
   if (error) {
-    console.error('Ошибка загрузки:', error);
+    console.error('Ошибка загрузки вопросов:', error);
     document.querySelector('.question-box').innerHTML =
-      '<p>Ошибка загрузки теста: ' + error.message + '</p>' +
+      '<p>Ошибка загрузки вопросов: ' + error.message + '</p>' +
       '<a href="index.html" class="btn">На главную</a>';
     return;
   }
 
   if (!data || data.length === 0) {
     document.querySelector('.question-box').innerHTML =
-      '<p>Вопросы для этого теста не найдены.</p>' +
+      '<p>В этом тесте пока нет вопросов.</p>' +
       '<a href="index.html" class="btn">На главную</a>';
     return;
   }
 
-  // Формируем вопросы с перемешанными вариантами
+  // 3. Формируем вопросы с перемешанными вариантами
   questions = data.map(q => {
     const opts = [
       { text: q.option_a, correct: q.correct_option === 'a' },
@@ -71,7 +100,7 @@ async function loadTest() {
     };
   });
 
-  // Перемешиваем порядок вопросов
+  // 4. Перемешиваем порядок вопросов
   if (shuffleEnabled) {
     questions = shuffle(questions);
   }
@@ -79,9 +108,11 @@ async function loadTest() {
   console.log('Вопросов загружено:', questions.length,
     shuffleEnabled ? '(с рандомизацией)' : '(без рандомизации)');
 
-  document.getElementById('test-title').textContent =
-    `${lang === 'english' ? 'English' : 'Español'} ${level.toUpperCase()}`;
+  // 5. Заголовок страницы
+  document.getElementById('test-title').textContent = test.title;
+  document.title = test.title + ' — LangTest';
 
+  // 6. Таймер и первый вопрос
   startTimer();
   renderQuestion();
 }
@@ -197,23 +228,26 @@ async function finishTest() {
   document.getElementById('progress').style.width = '100%';
 
   console.log('=== finishTest START ===');
-  console.log('studentName:', studentName, 'lang:', lang, 'level:', level);
+  console.log('studentName:', studentName, 'testId:', testId);
   console.log('score:', score, 'total:', questions.length);
 
   const percent = Math.round((score / questions.length) * 100);
 
+  // === Сохраняем попытку через RPC (сразу с test_id) ===
   console.log('=== RPC save_attempt ===');
   const { data: attemptId, error: err1 } = await supabase.rpc('save_attempt', {
     p_student_name: studentName,
-    p_language: lang,
-    p_level: level,
+    p_language: currentTest.language,
+    p_level: currentTest.level,
     p_score: score,
     p_total: questions.length,
-    p_percent: percent
+    p_percent: percent,
+    p_test_id: currentTest.id
   });
 
   console.log('attemptId:', attemptId, 'error:', err1);
 
+  // === Сохраняем ответы на каждый вопрос ===
   if (attemptId && !err1) {
     const rows = answers.map(a => ({
       attempt_id: attemptId,
@@ -229,10 +263,12 @@ async function finishTest() {
     console.log('answers error:', err2);
   }
 
+  // === Сохраняем результат для страницы result.html ===
   sessionStorage.setItem('lastResult', JSON.stringify({
     studentName,
-    language: lang,
-    level,
+    testTitle: currentTest.title,
+    language: currentTest.language,
+    level: currentTest.level,
     score,
     total: questions.length,
     percent,
@@ -244,9 +280,14 @@ async function finishTest() {
     console.error(err1);
   }
 
+  console.log('=== REDIRECT TO result.html ===');
+
   setTimeout(() => {
     window.location.href = 'result.html';
   }, 800);
 }
 
+// ==========================================
+// СТАРТ
+// ==========================================
 loadTest();

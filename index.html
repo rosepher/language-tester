@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LanguageTester — проверь свой уровень</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    (function() {
+      const saved = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
+    })();
+  </script>
 </head>
 <body>
   <header>
@@ -21,7 +28,7 @@
   <main class="container">
     <section class="hero">
       <h1>Проверь свой уровень английского и испанского</h1>
-      <p>Бесплатные тесты по уровням A2 и B1. Результат — за 15 минут.</p>
+      <p>Выберите тест, введите имя — и узнайте результат за 15 минут.</p>
     </section>
 
     <section class="name-input">
@@ -29,21 +36,23 @@
       <input type="text" id="student-name" placeholder="Иван Иванов" required>
     </section>
 
-    <section class="languages">
-      <div class="lang-card">
-        <div class="flag">🇬🇧</div>
-        <h2>English</h2>
-        <button onclick="startTest('english','a2')" class="btn">A2 — Elementary</button>
-        <button onclick="startTest('english','b1')" class="btn btn-secondary">B1 — Intermediate</button>
-      </div>
-
-      <div class="lang-card">
-        <div class="flag">🇪🇸</div>
-        <h2>Español</h2>
-        <button onclick="startTest('spanish','a2')" class="btn">A2 — Elemental</button>
-        <button onclick="startTest('spanish','b1')" class="btn btn-secondary">B1 — Intermedio</button>
-      </div>
+    <section class="filters">
+      <select id="filter-lang">
+        <option value="">Все языки</option>
+        <option value="english">English</option>
+        <option value="spanish">Español</option>
+      </select>
+      <select id="filter-level">
+        <option value="">Все уровни</option>
+        <option value="a2">A2</option>
+        <option value="b1">B1</option>
+      </select>
     </section>
+
+    <section id="tests-list" class="languages">
+      <p class="muted">Загрузка тестов...</p>
+    </section>
+
   </main>
 
   <footer>
@@ -52,7 +61,6 @@
     </div>
   </footer>
   <script type="module" src="js/theme.js"></script>
-  <script type="module" src="js/app.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

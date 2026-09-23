@@ -196,3 +196,34 @@ footer { background: var(--card); border-top: 1px solid var(--border); padding: 
 .theme-toggle:active {
   transform: scale(0.95);
 }
+
+* === КНОПКА Вопросы У ТЕСТОВ === */
+a.btn-small {
+  display: inline-block;
+  text-decoration: none;
+  color: #fff;
+  background: var(--primary);
+  padding: 4px 10px;
+  font-size: .85rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+a.btn-small:hover {
+  background: var(--primary-dark);
+}
+
+* === УВЕЛИЧЕННЫЕ КАРТОЧКИ ТЕСТОВ === */
+.lang-card .muted {
+  font-size: .9rem;
+  margin-bottom: 4px;
+}
+
+.lang-card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.filters {
+  justify-content: center;
+  margin-bottom: 30px;
+}
