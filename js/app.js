@@ -1,17 +1,19 @@
 import { supabase, getCurrentUser } from './supabase.js';
 
-// Проверяем, вошёл ли преподаватель — меняем ссылку
 const user = await getCurrentUser();
 if (user && user.role === 'teacher') {
   const link = document.getElementById('login-link');
-  link.textContent = 'Панель преподавателя';
-  link.href = 'teacher/dashboard.html';
+  if (link) {
+    link.textContent = 'Панель преподавателя';
+    link.href = 'teacher/dashboard.html';
+  }
 }
 
-// === Загрузка тестов ===
 async function loadTests() {
-  const lang = document.getElementById('filter-lang').value;
-  const level = document.getElementById('filter-level').value;
+  const langEl = document.getElementById('filter-lang');
+  const levelEl = document.getElementById('filter-level');
+  const lang = langEl ? langEl.value : '';
+  const level = levelEl ? levelEl.value : '';
 
   let query = supabase
     .from('tests')
@@ -24,8 +26,8 @@ async function loadTests() {
   if (level) query = query.eq('level', level);
 
   const { data, error } = await query;
-
   const list = document.getElementById('tests-list');
+  if (!list) return;
 
   if (error) {
     list.innerHTML = '<p class="muted">Ошибка загрузки: ' + error.message + '</p>';
@@ -33,11 +35,10 @@ async function loadTests() {
   }
 
   if (!data || data.length === 0) {
-    list.innerHTML = '<p class="muted">Тестов пока нет. Зайдите позже.</p>';
+    list.innerHTML = '<p class="muted">Тестов пока нет.</p>';
     return;
   }
 
-  // Подгружаем количество вопросов
   const testIds = data.map(t => t.id);
   const { data: qRows } = await supabase
     .from('questions')
@@ -62,10 +63,7 @@ async function loadTests() {
         <p class="muted" style="font-size:.85rem;">
           ${count} ${count === 1 ? 'вопрос' : (count < 5 ? 'вопроса' : 'вопросов')}
         </p>
-        <button 
-          class="btn" 
-          onclick="startTest(${t.id})"
-          ${disabled}>
+        <button class="btn" onclick="startTest(${t.id})" ${disabled}>
           ${count === 0 ? 'Нет вопросов' : 'Начать тест →'}
         </button>
       </div>
@@ -73,24 +71,24 @@ async function loadTests() {
   }).join('');
 }
 
-// Переход к тесту с проверкой имени
-window.startTest = function (lang, level) {
+window.startTest = function (testId) {
   const nameInput = document.getElementById('student-name');
   const name = nameInput.value.trim();
 
   if (!name) {
     alert('Пожалуйста, введите имя перед началом теста');
     nameInput.focus();
+    nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
 
   sessionStorage.setItem('student_name', name);
-  window.location.href = `test.html?lang=${lang}&level=${level}`;
+  window.location.href = `test.html?test_id=${testId}`;
 };
 
-// === Фильтры ===
-document.getElementById('filter-lang').onchange = loadTests;
-document.getElementById('filter-level').onchange = loadTests;
+const filterLang = document.getElementById('filter-lang');
+const filterLevel = document.getElementById('filter-level');
+if (filterLang) filterLang.onchange = loadTests;
+if (filterLevel) filterLevel.onchange = loadTests;
 
-// === Старт ===
 loadTests();
