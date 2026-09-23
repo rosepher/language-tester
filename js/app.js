@@ -1,4 +1,4 @@
-import { getCurrentUser } from './supabase.js';
+import { supabase, getCurrentUser } from './supabase.js';
 
 // Проверяем, вошёл ли преподаватель — меняем ссылку
 const user = await getCurrentUser();
