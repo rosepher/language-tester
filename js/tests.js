@@ -3,39 +3,44 @@ import { supabase, requireTeacher } from './supabase.js';
 const user = await requireTeacher();
 if (!user) throw new Error('Доступ запрещён');
 
-// === Logout ===
-document.getElementById('logout-btn').onclick = async () => {
-  await supabase.auth.signOut();
-  window.location.href = '../index.html';
-};
+const testsList = document.getElementById('tests-list');
+if (!testsList) {
+  console.error('tests.html устарел — нет #tests-list');
+  throw new Error('Неверная страница');
+}
 
-// === Загрузка тестов ===
+console.log('✅ tests.js загружен');
+
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+  logoutBtn.onclick = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '../index.html';
+  };
+}
+
 async function loadTests() {
-  const lang = document.getElementById('filter-lang').value;
-  const level = document.getElementById('filter-level').value;
+  const langEl = document.getElementById('filter-lang');
+  const levelEl = document.getElementById('filter-level');
+  const lang = langEl ? langEl.value : '';
+  const level = levelEl ? levelEl.value : '';
 
-  let query = supabase
-    .from('tests')
-    .select('*')
-    .order('id', { ascending: false });
-
+  let query = supabase.from('tests').select('*').order('id', { ascending: false });
   if (lang) query = query.eq('language', lang);
   if (level) query = query.eq('level', level);
 
   const { data, error } = await query;
 
   if (error) {
-    document.getElementById('tests-list').textContent = 'Ошибка: ' + error.message;
+    testsList.textContent = 'Ошибка: ' + error.message;
     return;
   }
 
-  const list = document.getElementById('tests-list');
   if (!data.length) {
-    list.innerHTML = '<p class="muted">Тестов нет. Нажмите «Добавить тест».</p>';
+    testsList.innerHTML = '<p class="muted">Тестов нет. Нажмите «Добавить тест».</p>';
     return;
   }
 
-  // Подгружаем количество вопросов для каждого теста
   const testIds = data.map(t => t.id);
   const { data: qCounts } = await supabase
     .from('questions')
@@ -47,7 +52,7 @@ async function loadTests() {
     counts[q.test_id] = (counts[q.test_id] || 0) + 1;
   });
 
-  list.innerHTML = data.map(t => `
+  testsList.innerHTML = data.map(t => `
     <div class="question-item">
       <div class="question-header">
         <div>
@@ -68,76 +73,97 @@ async function loadTests() {
   `).join('');
 }
 
-// === Показать форму ===
-document.getElementById('add-btn').onclick = () => {
-  resetForm();
-  document.getElementById('form-title').textContent = 'Новый тест';
-  document.getElementById('form-container').style.display = 'block';
-  document.getElementById('t-title').focus();
-};
-
-document.getElementById('cancel-btn').onclick = () => {
-  document.getElementById('form-container').style.display = 'none';
-};
+const addBtn = document.getElementById('add-btn');
+const formContainer = document.getElementById('form-container');
+const formTitle = document.getElementById('form-title');
+const testForm = document.getElementById('test-form');
 
 function resetForm() {
-  document.getElementById('test-form').reset();
-  document.getElementById('t-id').value = '';
-  document.getElementById('t-published').checked = true;
-  document.getElementById('form-error').textContent = '';
+  if (testForm) testForm.reset();
+  const tId = document.getElementById('t-id');
+  if (tId) tId.value = '';
+  const tPub = document.getElementById('t-published');
+  if (tPub) tPub.checked = true;
+  const err = document.getElementById('form-error');
+  if (err) err.textContent = '';
 }
 
-// === Сохранить ===
-document.getElementById('test-form').onsubmit = async (e) => {
-  e.preventDefault();
-
-  const id = document.getElementById('t-id').value;
-  const payload = {
-    title: document.getElementById('t-title').value.trim(),
-    description: document.getElementById('t-description').value.trim(),
-    language: document.getElementById('t-lang').value,
-    level: document.getElementById('t-level').value,
-    is_published: document.getElementById('t-published').checked
+if (addBtn && formContainer) {
+  addBtn.onclick = () => {
+    resetForm();
+    if (formTitle) formTitle.textContent = 'Новый тест';
+    formContainer.style.display = 'block';
+    const tTitle = document.getElementById('t-title');
+    if (tTitle) tTitle.focus();
   };
+}
 
-  const errorEl = document.getElementById('form-error');
-  let error;
+const cancelBtn = document.getElementById('cancel-btn');
+if (cancelBtn && formContainer) {
+  cancelBtn.onclick = () => {
+    formContainer.style.display = 'none';
+  };
+}
 
-  if (id) {
-    ({ error } = await supabase.from('tests').update(payload).eq('id', id));
-  } else {
-    payload.teacher_id = user.id;
-    ({ error } = await supabase.from('tests').insert(payload));
-  }
+if (testForm) {
+  testForm.onsubmit = async (e) => {
+    e.preventDefault();
 
-  if (error) {
-    errorEl.textContent = 'Ошибка: ' + error.message;
-    return;
-  }
+    const idEl = document.getElementById('t-id');
+    const id = idEl ? idEl.value : '';
 
-  document.getElementById('form-container').style.display = 'none';
-  resetForm();
-  loadTests();
-};
+    const payload = {
+      title: document.getElementById('t-title').value.trim(),
+      description: document.getElementById('t-description').value.trim(),
+      language: document.getElementById('t-lang').value,
+      level: document.getElementById('t-level').value,
+      is_published: document.getElementById('t-published').checked
+    };
 
-// === Редактировать ===
+    const errorEl = document.getElementById('form-error');
+    let error;
+
+    if (id) {
+      ({ error } = await supabase.from('tests').update(payload).eq('id', id));
+    } else {
+      payload.teacher_id = user.id;
+      ({ error } = await supabase.from('tests').insert(payload));
+    }
+
+    if (error) {
+      if (errorEl) errorEl.textContent = 'Ошибка: ' + error.message;
+      return;
+    }
+
+    if (formContainer) formContainer.style.display = 'none';
+    resetForm();
+    loadTests();
+  };
+}
+
 window.editTest = async (id) => {
   const { data } = await supabase.from('tests').select('*').eq('id', id).single();
   if (!data) return;
 
-  document.getElementById('t-id').value = data.id;
-  document.getElementById('t-title').value = data.title;
-  document.getElementById('t-description').value = data.description || '';
-  document.getElementById('t-lang').value = data.language;
-  document.getElementById('t-level').value = data.level;
-  document.getElementById('t-published').checked = data.is_published;
+  const set = (elId, val) => {
+    const el = document.getElementById(elId);
+    if (el) el.value = val;
+  };
 
-  document.getElementById('form-title').textContent = 'Редактировать тест';
-  document.getElementById('form-container').style.display = 'block';
+  set('t-id', data.id);
+  set('t-title', data.title);
+  set('t-description', data.description || '');
+  set('t-lang', data.language);
+  set('t-level', data.level);
+
+  const tPub = document.getElementById('t-published');
+  if (tPub) tPub.checked = data.is_published;
+
+  if (formTitle) formTitle.textContent = 'Редактировать тест';
+  if (formContainer) formContainer.style.display = 'block';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
-// === Удалить ===
 window.deleteTest = async (id) => {
   if (!confirm('Удалить тест и все его вопросы?')) return;
   const { error } = await supabase.from('tests').delete().eq('id', id);
@@ -145,8 +171,9 @@ window.deleteTest = async (id) => {
   loadTests();
 };
 
-// === Фильтры ===
-document.getElementById('filter-lang').onchange = loadTests;
-document.getElementById('filter-level').onchange = loadTests;
+const filterLang = document.getElementById('filter-lang');
+const filterLevel = document.getElementById('filter-level');
+if (filterLang) filterLang.onchange = loadTests;
+if (filterLevel) filterLevel.onchange = loadTests;
 
 loadTests();
