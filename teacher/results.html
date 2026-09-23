@@ -84,7 +84,7 @@
       `;
 
       list.innerHTML = data.map(a => {
-        const date = new Date(a.created_at).toLocaleString('ru-RU');
+        const date = new Date(new Date(a.created_at).getTime() + 3 * 60 * 60 * 1000).toLocaleString('ru-RU', { hour12: false });
         const cls = a.percent >= 80 ? 'excellent' : a.percent >= 60 ? 'good' : 'weak';
         return `
           <div class="result-row">
